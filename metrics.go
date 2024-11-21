@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"sync/atomic"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
+	templates      *template.Template
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -18,9 +20,15 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 }
 
 func (cfg *apiConfig) metricsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	hits := cfg.fileserverHits.Load() // Atomically read the counter
-	fmt.Fprintf(w, "Hits: %d\n", hits)
+	w.Header().Set("Content-Type", "text/html")
+	data := struct {
+		Hits int32
+	}{
+		Hits: cfg.fileserverHits.Load(),
+	}
+	if err := cfg.templates.ExecuteTemplate(w, "admin_metrics.html", data); err != nil {
+		http.Error(w, "Error rendering template", http.StatusInternalServerError)
+	}
 }
 
 func (cfg *apiConfig) resetMetricsHandler(w http.ResponseWriter, r *http.Request) {
