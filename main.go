@@ -29,13 +29,7 @@ func main() {
 	}
 
 	fileServer := http.FileServer(http.Dir("."))
-	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app/", fileServer)))
-
-	mux.HandleFunc("GET /admin/metrics", apiCfg.metricsHandler)
-	mux.HandleFunc("POST /admin/reset", apiCfg.resetMetricsHandler)
-
-	mux.HandleFunc("POST /api/validate_chirp", apiCfg.validate_chirp)
-	mux.HandleFunc("GET /api/healthz", healthz)
+	configureEndpoints(mux, apiCfg, fileServer)
 
 	srv := &http.Server{
 		Handler: mux,
@@ -47,6 +41,16 @@ func main() {
 	if err != nil {
 		log.Println("Error starting server:", err)
 	}
+}
+
+func configureEndpoints(mux *http.ServeMux, apiCfg *apiConfig, fileServer http.Handler) {
+	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app/", fileServer)))
+
+	mux.HandleFunc("GET /admin/metrics", apiCfg.metricsHandler)
+	mux.HandleFunc("POST /admin/reset", apiCfg.resetMetricsHandler)
+
+	mux.HandleFunc("POST /api/validate_chirp", apiCfg.validate_chirp)
+	mux.HandleFunc("GET /api/healthz", healthz)
 }
 
 func loadTemplates() *template.Template {
