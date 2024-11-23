@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 )
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -25,7 +26,16 @@ func (cfg *apiConfig) metricsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *apiConfig) resetMetricsHandler(w http.ResponseWriter, r *http.Request) {
+	if os.Getenv("PLATFORM") != "dev" {
+		respondWithError(w, http.StatusForbidden, "Reset not allowed", nil)
+		return
+	}
+	err := cfg.dbQueries.DeleteUsers(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not reset users", err)
+	}
+
 	w.Header().Set("Content-Type", "text/plain")
 	oldHits := cfg.fileserverHits.Swap(0) // Atomically reset the counter
-	fmt.Fprintf(w, "Resetting metrics. Previous count: %d\n", oldHits)
+	fmt.Fprintf(w, "Resetting metrics. Previous count: %d, Resetting Database State to initial state.\n", oldHits)
 }
