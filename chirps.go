@@ -18,7 +18,7 @@ type Chirp struct {
 	UserId    string `json:"user_id"`
 }
 
-func (cfg *apiConfig) chirps(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body   string `json:"body"`
 		UserId string `json:"user_id"`
