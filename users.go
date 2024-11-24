@@ -8,15 +8,8 @@ import (
 
 	"github.com/onkelwolle/chirpy/internal/auth"
 	"github.com/onkelwolle/chirpy/internal/database"
+	"github.com/onkelwolle/chirpy/internal/models"
 )
-
-type User struct {
-	Id        string `json:"id"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
-	Email     string `json:"email"`
-	Token     string `json:"token,omitempty"`
-}
 
 func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
@@ -49,7 +42,7 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, User{
+	respondWithJSON(w, http.StatusCreated, models.User{
 		Id:        user.ID.String(),
 		CreatedAt: user.CreatedAt.String(),
 		UpdatedAt: user.UpdatedAt.String(),
@@ -99,7 +92,7 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, User{
+	respondWithJSON(w, http.StatusOK, models.User{
 		Id:        user.ID.String(),
 		CreatedAt: user.CreatedAt.String(),
 		UpdatedAt: user.UpdatedAt.String(),

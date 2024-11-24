@@ -9,15 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/onkelwolle/chirpy/internal/auth"
 	"github.com/onkelwolle/chirpy/internal/database"
+	"github.com/onkelwolle/chirpy/internal/models"
 )
-
-type Chirp struct {
-	ID        string `json:"id"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
-	Body      string `json:"body"`
-	UserID    string `json:"user_id"`
-}
 
 func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
 
@@ -45,11 +38,6 @@ func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid user ID", err)
-		return
-	}
-
 	const maxChirpLength = 140
 	if len(chirp.Body) > maxChirpLength {
 		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
@@ -65,7 +53,7 @@ func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, Chirp{
+	respondWithJSON(w, http.StatusCreated, models.Chirp{
 		ID:        chi.ID.String(),
 		CreatedAt: chi.CreatedAt.String(),
 		UpdatedAt: chi.UpdatedAt.String(),
@@ -98,10 +86,10 @@ func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, chirps)
 }
 
-func convertDatabaseChirps(dbChirps []database.Chirp) []Chirp {
-	chirps := make([]Chirp, len(dbChirps))
+func convertDatabaseChirps(dbChirps []database.Chirp) []models.Chirp {
+	chirps := make([]models.Chirp, len(dbChirps))
 	for i, dbChirp := range dbChirps {
-		chirps[i] = Chirp{
+		chirps[i] = models.Chirp{
 			ID:        dbChirp.ID.String(),
 			CreatedAt: dbChirp.CreatedAt.String(),
 			UpdatedAt: dbChirp.UpdatedAt.String(),
@@ -113,9 +101,6 @@ func convertDatabaseChirps(dbChirps []database.Chirp) []Chirp {
 }
 
 func (cfg *apiConfig) getChirpByID(w http.ResponseWriter, r *http.Request) {
-	type returnVals struct {
-		Chirp
-	}
 
 	id := r.PathValue("chirpId")
 	log.Printf("Getting chirp with ID: %s", id)
@@ -131,7 +116,7 @@ func (cfg *apiConfig) getChirpByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, Chirp{
+	respondWithJSON(w, http.StatusOK, models.Chirp{
 		ID:        dbChirp.ID.String(),
 		CreatedAt: dbChirp.CreatedAt.String(),
 		UpdatedAt: dbChirp.UpdatedAt.String(),
