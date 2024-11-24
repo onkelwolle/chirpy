@@ -8,8 +8,10 @@ import (
 )
 
 type ApiConfig struct {
-	FileserverHits atomic.Int32
-	Templates      *template.Template
-	DbQueries      *database.Queries
-	Secret         []byte
+	FileserverHits        atomic.Int32
+	Templates             *template.Template
+	DbQueries             *database.Queries
+	Secret                []byte
+	AccessTokenExpiresIn  int64
+	RefreshTokenExpiresIn int64
 }

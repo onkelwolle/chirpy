@@ -26,9 +26,11 @@ func main() {
 	mux := http.NewServeMux()
 
 	apiCfg := &config.ApiConfig{
-		Templates: loadTemplates(),
-		DbQueries: database.New(db),
-		Secret:    []byte(os.Getenv("SECRET")),
+		Templates:             loadTemplates(),
+		DbQueries:             database.New(db),
+		Secret:                []byte(os.Getenv("SECRET")),
+		AccessTokenExpiresIn:  60 * 60 * 1,       // 1 hour
+		RefreshTokenExpiresIn: 60 * 60 * 24 * 60, // 60 days
 	}
 
 	fileServer := http.FileServer(http.Dir("."))
@@ -63,6 +65,9 @@ func configureEndpoints(mux *http.ServeMux, apiCfg *config.ApiConfig, fileServer
 
 	mux.HandleFunc("POST /api/users", userHandler.CreateUser)
 	mux.HandleFunc("POST /api/login", userHandler.Login)
+	mux.HandleFunc("POST /api/refresh", userHandler.RefreshToken)
+	mux.HandleFunc("POST /api/revoke", userHandler.RevokeToken)
+
 	mux.HandleFunc("GET /api/healthz", healthz)
 }
 
