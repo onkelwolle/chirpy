@@ -26,6 +26,7 @@ func main() {
 	apiCfg := &apiConfig{
 		templates: loadTemplates(),
 		dbQueries: database.New(db),
+		secret:    []byte(os.Getenv("SECRET")),
 	}
 
 	fileServer := http.FileServer(http.Dir("."))

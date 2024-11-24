@@ -7,6 +7,7 @@ import (
 	"regexp"
 
 	"github.com/google/uuid"
+	"github.com/onkelwolle/chirpy/internal/auth"
 	"github.com/onkelwolle/chirpy/internal/database"
 )
 
@@ -19,17 +20,33 @@ type Chirp struct {
 }
 
 func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
+
+	bearerToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+		return
+	}
+	userId, err := auth.ValidateJWT(bearerToken, string(cfg.secret))
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+		return
+	}
+
 	type parameters struct {
-		Body   string `json:"body"`
-		UserId string `json:"user_id"`
+		Body string `json:"body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	chirp := parameters{}
-	err := decoder.Decode(&chirp)
+	err = decoder.Decode(&chirp)
 	if err != nil {
 		log.Printf("Error decoding parameters: %s", err)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid user ID", err)
 		return
 	}
 
@@ -39,7 +56,6 @@ func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := uuid.Parse(chirp.UserId)
 	chi, err := cfg.dbQueries.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleanBody(chirp.Body),
 		UserID: userId,
