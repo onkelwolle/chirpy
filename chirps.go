@@ -11,20 +11,17 @@ import (
 )
 
 type Chirp struct {
-	Id        string `json:"id"`
+	ID        string `json:"id"`
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
 	Body      string `json:"body"`
-	UserId    string `json:"user_id"`
+	UserID    string `json:"user_id"`
 }
 
 func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body   string `json:"body"`
 		UserId string `json:"user_id"`
-	}
-	type returnVals struct {
-		Chirp
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -52,14 +49,12 @@ func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, returnVals{
-		Chirp{
-			Id:        chi.ID.String(),
-			CreatedAt: chi.CreatedAt.String(),
-			UpdatedAt: chi.UpdatedAt.String(),
-			Body:      chi.Body,
-			UserId:    chi.UserID.String(),
-		},
+	respondWithJSON(w, http.StatusCreated, Chirp{
+		ID:        chi.ID.String(),
+		CreatedAt: chi.CreatedAt.String(),
+		UpdatedAt: chi.UpdatedAt.String(),
+		Body:      chi.Body,
+		UserID:    chi.UserID.String(),
 	})
 }
 
@@ -73,4 +68,58 @@ func cleanBody(body string) string {
 	}
 
 	return body
+}
+
+func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
+
+	dbChirps, err := cfg.dbQueries.GetChirps(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not get chirps", err)
+		return
+	}
+
+	chirps := convertDatabaseChirps(dbChirps)
+	respondWithJSON(w, http.StatusOK, chirps)
+}
+
+func convertDatabaseChirps(dbChirps []database.Chirp) []Chirp {
+	chirps := make([]Chirp, len(dbChirps))
+	for i, dbChirp := range dbChirps {
+		chirps[i] = Chirp{
+			ID:        dbChirp.ID.String(),
+			CreatedAt: dbChirp.CreatedAt.String(),
+			UpdatedAt: dbChirp.UpdatedAt.String(),
+			Body:      dbChirp.Body,
+			UserID:    dbChirp.UserID.String(),
+		}
+	}
+	return chirps
+}
+
+func (cfg *apiConfig) getChirpByID(w http.ResponseWriter, r *http.Request) {
+	type returnVals struct {
+		Chirp
+	}
+
+	id := r.PathValue("chirpId")
+	log.Printf("Getting chirp with ID: %s", id)
+	chirpID, err := uuid.Parse(id)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Invalid chirp ID", err)
+		return
+	}
+
+	dbChirp, err := cfg.dbQueries.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not get chirp", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, Chirp{
+		ID:        dbChirp.ID.String(),
+		CreatedAt: dbChirp.CreatedAt.String(),
+		UpdatedAt: dbChirp.UpdatedAt.String(),
+		Body:      dbChirp.Body,
+		UserID:    dbChirp.UserID.String(),
+	})
 }
