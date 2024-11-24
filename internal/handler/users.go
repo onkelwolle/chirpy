@@ -178,3 +178,55 @@ func (u *usersHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 
 	utils.RespondWithJSON(w, http.StatusNoContent, struct{}{})
 }
+
+func (u *usersHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	authToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(authToken, string(u.cfg.Secret))
+	if err != nil {
+		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+		return
+	}
+
+	type parameters struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err = decoder.Decode(&params)
+	if err != nil {
+		log.Printf("Error decoding parameters: %s", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	hashedPassword, err := auth.HashPassword(params.Password)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Couldn't hash password", err)
+		return
+	}
+
+	user, err := u.cfg.DbQueries.UpdateUsersPasswordAndEmail(r.Context(), database.UpdateUsersPasswordAndEmailParams{
+		Email:          params.Email,
+		HashedPassword: hashedPassword,
+		ID:             userID,
+	})
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Couldn't update user", err)
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, models.User{
+		Id:        user.ID.String(),
+		CreatedAt: user.CreatedAt.String(),
+		UpdatedAt: user.UpdatedAt.String(),
+		Email:     user.Email,
+	})
+
+}

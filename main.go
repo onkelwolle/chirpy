@@ -65,6 +65,7 @@ func configureEndpoints(mux *http.ServeMux, apiCfg *config.ApiConfig, fileServer
 
 	mux.HandleFunc("POST /api/users", userHandler.CreateUser)
 	mux.HandleFunc("POST /api/login", userHandler.Login)
+	mux.HandleFunc("PUT /api/users", userHandler.UpdateUser)
 	mux.HandleFunc("POST /api/refresh", userHandler.RefreshToken)
 	mux.HandleFunc("POST /api/revoke", userHandler.RevokeToken)
 
