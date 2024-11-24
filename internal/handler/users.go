@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"encoding/json"
@@ -7,11 +7,21 @@ import (
 	"time"
 
 	"github.com/onkelwolle/chirpy/internal/auth"
+	"github.com/onkelwolle/chirpy/internal/config"
 	"github.com/onkelwolle/chirpy/internal/database"
 	"github.com/onkelwolle/chirpy/internal/models"
+	"github.com/onkelwolle/chirpy/internal/utils"
 )
 
-func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
+type usersHandler struct {
+	cfg *config.ApiConfig
+}
+
+func NewUsersHandler(cfg *config.ApiConfig) *usersHandler {
+	return &usersHandler{cfg: cfg}
+}
+
+func (u *usersHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -22,27 +32,27 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		log.Printf("Error decoding parameters: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
 
 	hashedPassword, err := auth.HashPassword(params.Password)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't hash password", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Couldn't hash password", err)
 		return
 	}
 
-	user, err := cfg.dbQueries.CreateUser(r.Context(), database.CreateUserParams{
+	user, err := u.cfg.DbQueries.CreateUser(r.Context(), database.CreateUserParams{
 		Email:          params.Email,
 		HashedPassword: hashedPassword,
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, models.User{
+	utils.RespondWithJSON(w, http.StatusCreated, models.User{
 		Id:        user.ID.String(),
 		CreatedAt: user.CreatedAt.String(),
 		UpdatedAt: user.UpdatedAt.String(),
@@ -51,7 +61,7 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
+func (u *usersHandler) Login(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email            string `json:"email"`
 		Password         string `json:"password"`
@@ -63,19 +73,19 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		log.Printf("Error decoding parameters: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
 
-	user, err := cfg.dbQueries.GetUserByEmail(r.Context(), params.Email)
+	user, err := u.cfg.DbQueries.GetUserByEmail(r.Context(), params.Email)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Invalid email or password", err)
+		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid email or password", err)
 		return
 	}
 
 	err = auth.ComparePassword(user.HashedPassword, params.Password)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Invalid email or password", err)
+		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid email or password", err)
 		return
 	}
 
@@ -86,13 +96,13 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 		expiresIn = params.ExpiresInSeconds
 	}
 
-	token, err := auth.MakeJWT(user.ID, string(cfg.secret), time.Duration(expiresIn)*time.Second)
+	token, err := auth.MakeJWT(user.ID, string(u.cfg.Secret), time.Duration(expiresIn)*time.Second)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create token", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Couldn't create token", err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, models.User{
+	utils.RespondWithJSON(w, http.StatusOK, models.User{
 		Id:        user.ID.String(),
 		CreatedAt: user.CreatedAt.String(),
 		UpdatedAt: user.UpdatedAt.String(),

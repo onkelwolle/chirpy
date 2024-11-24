@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"encoding/json"
@@ -8,20 +8,30 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/onkelwolle/chirpy/internal/auth"
+	"github.com/onkelwolle/chirpy/internal/config"
 	"github.com/onkelwolle/chirpy/internal/database"
 	"github.com/onkelwolle/chirpy/internal/models"
+	utils "github.com/onkelwolle/chirpy/internal/utils"
 )
 
-func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
+type chirpHandler struct {
+	cfg *config.ApiConfig
+}
+
+func NewChirpHandler(cfg *config.ApiConfig) *chirpHandler {
+	return &chirpHandler{cfg: cfg}
+}
+
+func (h *chirpHandler) CreateChirps(w http.ResponseWriter, r *http.Request) {
 
 	bearerToken, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid token", err)
 		return
 	}
-	userId, err := auth.ValidateJWT(bearerToken, string(cfg.secret))
+	userId, err := auth.ValidateJWT(bearerToken, string(h.cfg.Secret))
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid token", err)
 		return
 	}
 
@@ -34,26 +44,26 @@ func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
 	err = decoder.Decode(&chirp)
 	if err != nil {
 		log.Printf("Error decoding parameters: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
 
 	const maxChirpLength = 140
 	if len(chirp.Body) > maxChirpLength {
-		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
+		utils.RespondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
 		return
 	}
 
-	chi, err := cfg.dbQueries.CreateChirp(r.Context(), database.CreateChirpParams{
+	chi, err := h.cfg.DbQueries.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleanBody(chirp.Body),
 		UserID: userId,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Could not create chirp", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Could not create chirp", err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, models.Chirp{
+	utils.RespondWithJSON(w, http.StatusCreated, models.Chirp{
 		ID:        chi.ID.String(),
 		CreatedAt: chi.CreatedAt.String(),
 		UpdatedAt: chi.UpdatedAt.String(),
@@ -74,16 +84,16 @@ func cleanBody(body string) string {
 	return body
 }
 
-func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
+func (h *chirpHandler) GetChirps(w http.ResponseWriter, r *http.Request) {
 
-	dbChirps, err := cfg.dbQueries.GetChirps(r.Context())
+	dbChirps, err := h.cfg.DbQueries.GetChirps(r.Context())
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Could not get chirps", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Could not get chirps", err)
 		return
 	}
 
 	chirps := convertDatabaseChirps(dbChirps)
-	respondWithJSON(w, http.StatusOK, chirps)
+	utils.RespondWithJSON(w, http.StatusOK, chirps)
 }
 
 func convertDatabaseChirps(dbChirps []database.Chirp) []models.Chirp {
@@ -100,23 +110,23 @@ func convertDatabaseChirps(dbChirps []database.Chirp) []models.Chirp {
 	return chirps
 }
 
-func (cfg *apiConfig) getChirpByID(w http.ResponseWriter, r *http.Request) {
+func (h *chirpHandler) GetChirpByID(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("chirpId")
 	log.Printf("Getting chirp with ID: %s", id)
 	chirpID, err := uuid.Parse(id)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, "Invalid chirp ID", err)
+		utils.RespondWithError(w, http.StatusNotFound, "Invalid chirp ID", err)
 		return
 	}
 
-	dbChirp, err := cfg.dbQueries.GetChirpByID(r.Context(), chirpID)
+	dbChirp, err := h.cfg.DbQueries.GetChirpByID(r.Context(), chirpID)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Could not get chirp", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Could not get chirp", err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, models.Chirp{
+	utils.RespondWithJSON(w, http.StatusOK, models.Chirp{
 		ID:        dbChirp.ID.String(),
 		CreatedAt: dbChirp.CreatedAt.String(),
 		UpdatedAt: dbChirp.UpdatedAt.String(),

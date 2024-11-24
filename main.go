@@ -9,7 +9,9 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"github.com/onkelwolle/chirpy/internal/config"
 	"github.com/onkelwolle/chirpy/internal/database"
+	"github.com/onkelwolle/chirpy/internal/handler"
 )
 
 func main() {
@@ -23,10 +25,10 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	apiCfg := &apiConfig{
-		templates: loadTemplates(),
-		dbQueries: database.New(db),
-		secret:    []byte(os.Getenv("SECRET")),
+	apiCfg := &config.ApiConfig{
+		Templates: loadTemplates(),
+		DbQueries: database.New(db),
+		Secret:    []byte(os.Getenv("SECRET")),
 	}
 
 	fileServer := http.FileServer(http.Dir("."))
@@ -44,17 +46,23 @@ func main() {
 	}
 }
 
-func configureEndpoints(mux *http.ServeMux, apiCfg *apiConfig, fileServer http.Handler) {
-	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app/", fileServer)))
+func configureEndpoints(mux *http.ServeMux, apiCfg *config.ApiConfig, fileServer http.Handler) {
 
-	mux.HandleFunc("GET /admin/metrics", apiCfg.metricsHandler)
-	mux.HandleFunc("POST /admin/reset", apiCfg.resetMetricsHandler)
+	chirpHandler := handler.NewChirpHandler(apiCfg)
+	metricsHandler := handler.NewMetricsHandler(apiCfg)
+	userHandler := handler.NewUsersHandler(apiCfg)
 
-	mux.HandleFunc("POST /api/chirps", apiCfg.createChirps)
-	mux.HandleFunc("GET /api/chirps", apiCfg.getChirps)
-	mux.HandleFunc("GET /api/chirps/{chirpId}", apiCfg.getChirpByID)
-	mux.HandleFunc("POST /api/users", apiCfg.createUser)
-	mux.HandleFunc("POST /api/login", apiCfg.login)
+	mux.Handle("/app/", metricsHandler.MiddlewareMetricsInc(http.StripPrefix("/app/", fileServer)))
+
+	mux.HandleFunc("GET /admin/metrics", metricsHandler.MetricsHandler)
+	mux.HandleFunc("POST /admin/reset", metricsHandler.ResetMetricsHandler)
+
+	mux.HandleFunc("POST /api/chirps", chirpHandler.CreateChirps)
+	mux.HandleFunc("GET /api/chirps", chirpHandler.GetChirps)
+	mux.HandleFunc("GET /api/chirps/{chirpId}", chirpHandler.GetChirpByID)
+
+	mux.HandleFunc("POST /api/users", userHandler.CreateUser)
+	mux.HandleFunc("POST /api/login", userHandler.Login)
 	mux.HandleFunc("GET /api/healthz", healthz)
 }
 
