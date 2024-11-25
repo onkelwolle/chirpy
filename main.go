@@ -62,6 +62,7 @@ func configureEndpoints(mux *http.ServeMux, apiCfg *config.ApiConfig, fileServer
 	mux.HandleFunc("POST /api/chirps", chirpHandler.CreateChirps)
 	mux.HandleFunc("GET /api/chirps", chirpHandler.GetChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpId}", chirpHandler.GetChirpByID)
+	mux.HandleFunc("DELETE /api/chirps/{chirpId}", chirpHandler.DeleteChirp)
 
 	mux.HandleFunc("POST /api/users", userHandler.CreateUser)
 	mux.HandleFunc("POST /api/login", userHandler.Login)
