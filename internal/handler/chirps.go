@@ -86,6 +86,25 @@ func cleanBody(body string) string {
 
 func (h *chirpHandler) GetChirps(w http.ResponseWriter, r *http.Request) {
 
+	authorId := r.URL.Query().Get("author_id")
+	if authorId != "" {
+		authorUUID, err := uuid.Parse(authorId)
+		if err != nil {
+			utils.RespondWithError(w, http.StatusBadRequest, "Invalid author ID", err)
+			return
+		}
+
+		dbChirps, err := h.cfg.DbQueries.GetChirpsByUserID(r.Context(), authorUUID)
+		if err != nil {
+			utils.RespondWithError(w, http.StatusInternalServerError, "Could not get chirps", err)
+			return
+		}
+
+		chirps := convertDatabaseChirps(dbChirps)
+		utils.RespondWithJSON(w, http.StatusOK, chirps)
+		return
+	}
+
 	dbChirps, err := h.cfg.DbQueries.GetChirps(r.Context())
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Could not get chirps", err)
@@ -113,6 +132,7 @@ func convertDatabaseChirps(dbChirps []database.Chirp) []models.Chirp {
 func (h *chirpHandler) GetChirpByID(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("chirpId")
+
 	log.Printf("Getting chirp with ID: %s", id)
 	chirpID, err := uuid.Parse(id)
 	if err != nil {
