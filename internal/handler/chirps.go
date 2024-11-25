@@ -85,6 +85,13 @@ func cleanBody(body string) string {
 }
 
 func (h *chirpHandler) GetChirps(w http.ResponseWriter, r *http.Request) {
+	var dbChirps []database.Chirp
+	var err error
+
+	sort := "asc"
+	if r.URL.Query().Get("sort") == "desc" {
+		sort = "desc"
+	}
 
 	authorId := r.URL.Query().Get("author_id")
 	if authorId != "" {
@@ -94,7 +101,11 @@ func (h *chirpHandler) GetChirps(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		dbChirps, err := h.cfg.DbQueries.GetChirpsByUserID(r.Context(), authorUUID)
+		if sort == "desc" {
+			dbChirps, err = h.cfg.DbQueries.GetChirpsByUserIDDesc(r.Context(), authorUUID)
+		} else {
+			dbChirps, err = h.cfg.DbQueries.GetChirpsByUserIDAsc(r.Context(), authorUUID)
+		}
 		if err != nil {
 			utils.RespondWithError(w, http.StatusInternalServerError, "Could not get chirps", err)
 			return
@@ -105,7 +116,12 @@ func (h *chirpHandler) GetChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbChirps, err := h.cfg.DbQueries.GetChirps(r.Context())
+	if sort == "desc" {
+		dbChirps, err = h.cfg.DbQueries.GetChirpsDesc(r.Context())
+
+	} else {
+		dbChirps, err = h.cfg.DbQueries.GetChirpsAsc(r.Context())
+	}
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Could not get chirps", err)
 		return

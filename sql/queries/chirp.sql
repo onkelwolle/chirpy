@@ -9,14 +9,20 @@ VALUES (
 )
 RETURNING *;
 
--- name: GetChirps :many
-SELECT * FROM chirps ORDER BY created_at;
+-- name: GetChirpsAsc :many
+SELECT * FROM chirps ORDER BY created_at ASC;
+
+-- name: GetChirpsDesc :many
+SELECT * FROM chirps ORDER BY created_at DESC;
 
 -- name: GetChirpByID :one
 SELECT * FROM chirps WHERE id = $1;
 
--- name: GetChirpsByUserID :many
-SELECT * FROM chirps WHERE user_id = $1 ORDER BY created_at;
+-- name: GetChirpsByUserIDAsc :many
+SELECT * FROM chirps WHERE user_id = $1 ORDER BY created_at ASC;
+
+-- name: GetChirpsByUserIDDesc :many
+SELECT * FROM chirps WHERE user_id = $1 ORDER BY created_at DESC;
 
 -- name: DeleteChirpByID :exec
 DELETE FROM chirps WHERE id = $1;
