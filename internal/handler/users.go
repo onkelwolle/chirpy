@@ -53,10 +53,11 @@ func (u *usersHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJSON(w, http.StatusCreated, models.User{
-		Id:        user.ID.String(),
-		CreatedAt: user.CreatedAt.String(),
-		UpdatedAt: user.UpdatedAt.String(),
-		Email:     user.Email,
+		Id:          user.ID.String(),
+		CreatedAt:   user.CreatedAt.String(),
+		UpdatedAt:   user.UpdatedAt.String(),
+		IsChirpyRed: user.IsChirpyRed,
+		Email:       user.Email,
 	})
 
 }
@@ -115,6 +116,7 @@ func (u *usersHandler) Login(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:    user.CreatedAt.String(),
 		UpdatedAt:    user.UpdatedAt.String(),
 		Email:        user.Email,
+		IsChirpyRed:  user.IsChirpyRed,
 		Token:        token,
 		RefreshToken: refreshToken,
 	})
@@ -223,10 +225,11 @@ func (u *usersHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, models.User{
-		Id:        user.ID.String(),
-		CreatedAt: user.CreatedAt.String(),
-		UpdatedAt: user.UpdatedAt.String(),
-		Email:     user.Email,
+		Id:          user.ID.String(),
+		CreatedAt:   user.CreatedAt.String(),
+		UpdatedAt:   user.UpdatedAt.String(),
+		Email:       user.Email,
+		IsChirpyRed: user.IsChirpyRed,
 	})
 
 }

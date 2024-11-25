@@ -12,6 +12,7 @@ type ApiConfig struct {
 	Templates             *template.Template
 	DbQueries             *database.Queries
 	Secret                []byte
+	PolkaWebhookSecret    []byte
 	AccessTokenExpiresIn  int64
 	RefreshTokenExpiresIn int64
 }

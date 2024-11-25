@@ -29,6 +29,7 @@ func main() {
 		Templates:             loadTemplates(),
 		DbQueries:             database.New(db),
 		Secret:                []byte(os.Getenv("SECRET")),
+		PolkaWebhookSecret:    []byte(os.Getenv("POLKA_KEY")),
 		AccessTokenExpiresIn:  60 * 60 * 1,       // 1 hour
 		RefreshTokenExpiresIn: 60 * 60 * 24 * 60, // 60 days
 	}
@@ -53,6 +54,7 @@ func configureEndpoints(mux *http.ServeMux, apiCfg *config.ApiConfig, fileServer
 	chirpHandler := handler.NewChirpHandler(apiCfg)
 	metricsHandler := handler.NewMetricsHandler(apiCfg)
 	userHandler := handler.NewUsersHandler(apiCfg)
+	webhookHandler := handler.NewWebhooksHandler(apiCfg)
 
 	mux.Handle("/app/", metricsHandler.MiddlewareMetricsInc(http.StripPrefix("/app/", fileServer)))
 
@@ -69,6 +71,8 @@ func configureEndpoints(mux *http.ServeMux, apiCfg *config.ApiConfig, fileServer
 	mux.HandleFunc("PUT /api/users", userHandler.UpdateUser)
 	mux.HandleFunc("POST /api/refresh", userHandler.RefreshToken)
 	mux.HandleFunc("POST /api/revoke", userHandler.RevokeToken)
+
+	mux.HandleFunc("POST /api/polka/webhooks", webhookHandler.PolkaWebhook)
 
 	mux.HandleFunc("GET /api/healthz", healthz)
 }
